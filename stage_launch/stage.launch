@@ -1,0 +1,3 @@
+<launch>
+	<node name="stageros" pkg="stage_ros" type="stageros" args="$(find kimi_robot)/stage_launch/stage.world" />
+</launch>
