@@ -17,7 +17,8 @@
 #include "nav_msgs/Odometry.h"
 #include <tf/transform_broadcaster.h>
 
-#include "kimi_robot/geometryR_header.h"
+#include "kimi_robot/GeometryR/geometryR_header.h"
+#include "kimi_robot/Perception/perception.h"
 
 double _x = 0;
 double _y = 0;
@@ -32,9 +33,16 @@ double _vx = 0;
 double _vy = 0;
 double _vth = 0;
 
+std::vector<VecPosition> _laserframe;
+CPerception _perception;
+
+bool _ifgetvel = false;
+bool _ifgetlaser = false;
+
 void TwistCallback(const geometry_msgs::Twist::ConstPtr& msg);
-void SelfLocalize();
+void LaserCallback(const sensor_msgs::LaserScan::ConstPtr& msg);
 void PredictRobotPose();
+void UpdateRobotPose();
 void UpdateRobotPose();
 
 int main(int argc, char **argv)
@@ -42,9 +50,32 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "kimi_nav_node");
   ros::NodeHandle n;
   _lastframetime = ros::Time::now();
-  ros::Subscriber sub = n.subscribe("cmd_vel", 1000, TwistCallback);
+  ros::Subscriber velsub = n.subscribe("cmd_vel", 1000, TwistCallback);
+  ros::Subscriber laserSub = n.subscribe("base_scan", 1000, LaserCallback);
   
-  ros::spin();
+  while (! _ifgetlaser) {	ros::spinOnce();	}
+  
+  ros::Rate looprate(10);
+  while (ros::ok()) {
+    
+    _perception.ReadLaserFrame(_laserframe);
+    
+    
+    std::vector<CCorner> corners = _perception.ExtractCornerFromLaserPoints();
+    
+    std::cout << "show corners:__________\n";
+//     for (int i = 0; i < corners.size(); i++) {
+//       std::cout << corners[i].m_pos.GetX() << ",  "
+// 		<< corners[i].m_pos.GetY() << ",  "
+// 		<< corners[i].m_angle << ",  "
+// 		<< corners[i].m_normal << std::endl;
+//     }
+    
+    
+    //UpdateRobotPose();
+    ros::spinOnce();
+    looprate.sleep();
+  }
   return 0;
 }
 
@@ -54,7 +85,25 @@ void TwistCallback(const geometry_msgs::Twist::ConstPtr& msg)
   _vx = msg->linear.x;
   _vy = msg->linear.y;
   _vth = msg->angular.z;
-  std::cout << "vx: " << _vx << "	vy: " << _vy << "	vth: " << _vth << std::endl;
+  //std::cout << "vx: " << _vx << "	vy: " << _vy << "	vth: " << _vth << std::endl;
+  
+  _ifgetvel = true;
+}
+
+void LaserCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
+{
+  _laserframe.clear();
+  std::vector<float> ranges = msg->ranges;
+  int N = ranges.size();
+  float minAngle = msg->angle_min;
+  float angleIncrement = msg->angle_increment;
+  for (int i = 0; i < N; i++) {
+    VecPosition p = VecPosition::GetVecPositionFromPolar(ranges[i], minAngle + angleIncrement * i);
+    //std::cout << i << " : " << p.GetX() << " " << p.GetY() << std::endl;
+    _laserframe.push_back(p);
+  }
+  
+  _ifgetlaser = true;
 }
 
 void PredictRobotPose()
@@ -64,7 +113,7 @@ void PredictRobotPose()
   double dy = (_vx * sin(_thp) + _vy * cos(_thp)) * dt;
   double dth = _vth * dt;    
     
-  std::cout << "dt: " << dt << "	dx: " << dx << "	dy: " << dy << "	dth: " << dth << std::endl;
+  //std::cout << "dt: " << dt << "	dx: " << dx << "	dy: " << dy << "	dth: " << dth << std::endl;
    
   _xp += dx;
   _yp += dy;
@@ -72,7 +121,7 @@ void PredictRobotPose()
     
   _lastframetime = ros::Time::now();
     
-  std::cout << "xp: " << _xp << "	yp: " << _yp << "	thp: " << _thp << std::endl;
+  //std::cout << "xp: " << _xp << "	yp: " << _yp << "	thp: " << _thp << std::endl;
 }
 
 void UpdateRobotPose()
@@ -80,10 +129,9 @@ void UpdateRobotPose()
   
 }
 
-void SelfLocalize()
+void LaserLocalize()
 {
-  PredictRobotPose();
-  UpdateRobotPose();
+  
 }
 
 

@@ -66,7 +66,7 @@ const int     UnknownTime         = -20;     /*!< indicates unknown time      */
 const long    UnknownMessageNr    = -30;     /*!< indicates unknown message nr*/
 
 //#define M_PI	3.1415926535897932	/* Value of pi */
-//#define PI	M_PI
+#define PI	M_PI
 
 class Maths
 {
