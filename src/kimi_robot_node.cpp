@@ -64,13 +64,21 @@ int main(int argc, char **argv)
     std::vector<CCorner> corners = _perception.ExtractCornerFromLaserPoints();
     
     std::cout << "show corners:__________\n";
-//     for (int i = 0; i < corners.size(); i++) {
-//       std::cout << corners[i].m_pos.GetX() << ",  "
-// 		<< corners[i].m_pos.GetY() << ",  "
-// 		<< corners[i].m_angle << ",  "
-// 		<< corners[i].m_normal << std::endl;
-//     }
+    for (int i = 0; i < corners.size(); i++) {
+      std::cout << corners[i].m_pos.GetX() << " "
+		<< corners[i].m_pos.GetY() << ",  "
+		<< corners[i].m_angle << ",  "
+		<< corners[i].m_normal << std::endl;
+    }
     
+    VecPosition *pRobot = new VecPosition(0, 0);
+    double tt = 0;
+    double* thRobot = &tt; 
+    CCorner global_corner(7, 8, PI/2, PI*1.25);
+    if (corners.size() > 0) {
+      CCorner local_corner = corners[0];
+      CPerception::Localize(local_corner, global_corner, pRobot, thRobot);
+    }
     
     //UpdateRobotPose();
     ros::spinOnce();

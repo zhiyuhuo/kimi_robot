@@ -29,6 +29,13 @@ public:
     m_angle = angle;
     m_normal = normal;
   }
+  
+  CCorner(double x, double y, double angle, double normal){
+    m_pos.SetX(x);
+    m_pos.SetY(y);
+    m_angle = angle;
+    m_normal = normal;
+  }
 };
 
 class CWall {
@@ -61,11 +68,11 @@ public:
 	for (int j = i+1; j < laserframe.size(); j++) {
 	  VecPosition sj = laserframe[j] - laserframe[j-5];
 	  
-	  if (sj.GetMagnitude() > 0.5)
+	  if (sj.GetMagnitude() > 0.30)
 	    break;
 	  
 	  double th = fabs(VecPosition::NormalizeAngle(si.GetDirection() - sj.GetDirection()));
-	  if (th > PI * 0.45) {
+	  if (fabs(th - PI * 0.5) < PI * 0.05) {
 // 	    std::cout << i << ": " << si.GetX() << " " << si.GetY() << ", " 
 // 	    	      << j << ": " << sj.GetX() << " " << sj.GetY() << ", "<< th << std::endl;
 	    
@@ -83,18 +90,22 @@ public:
 	      }
 	    }
 	    
-	    std::cout << mindthid << " " << mindth << std::endl;
+	    //std::cout << mindthid << " " << mindth << std::endl;
 	    if (mindthid < 0 || mindth > 0.1)
 	      break;
 	    
-	    double normalvalue = VecPosition::NormalizeAngle2PI((sr.GetDirection() + s.GetDirection())/2);
+	    double normalvalue = VecPosition::NormalizeAngle2PI((sr.GetDirection() + PI + sl.GetDirection())/2);
 	    
-	    std::cout << mindthid << std::endl;
+	    double dth3 = fabs(VecPosition::NormalizeAngle(normalvalue - sr.GetDirection()));
+	    if (dth3 > PI/2) 
+	      break;
+	    
+	    //std::cout << mindthid << std::endl;
 	    CCorner cnr(laserframe[mindthid], th, normalvalue);
-	    std::cout << cnr.m_pos.GetX() << ",  "
+	    /*std::cout << cnr.m_pos.GetX() << ",  "
 		<< cnr.m_pos.GetY() << ",  "
 		<< cnr.m_angle << ",  "
-		<< cnr.m_normal << std::endl;
+		<< cnr.m_normal << std::endl;*/
 	    res.push_back(cnr);
 	    i = j;
 	    break;
@@ -106,6 +117,18 @@ public:
     
     
     return res;
+  }
+  
+  static void Localize(CCorner local_corner, CCorner global_corner, VecPosition* posRobot, double* thRobot) {
+    *thRobot = global_corner.m_normal - local_corner.m_normal;
+    std::cout << *thRobot << std::endl;
+    VecPosition RPl(0, 0);
+    RPl.SetX(cos(*thRobot)*local_corner.m_pos.GetX() - sin(*thRobot)*local_corner.m_pos.GetY());
+    RPl.SetY(sin(*thRobot)*local_corner.m_pos.GetX() + cos(*thRobot)*local_corner.m_pos.GetY());
+    
+    *posRobot = global_corner.m_pos - RPl;
+    
+    std::cout << posRobot->GetX() << ", " << posRobot->GetY() << std::endl;
   }
   
 };
